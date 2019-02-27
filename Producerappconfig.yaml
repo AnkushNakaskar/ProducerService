@@ -1,0 +1,65 @@
+---
+apiVersion: "extensions/v1beta1"
+kind: "Deployment"
+metadata:
+  name: "producerapp"
+  namespace: "default"
+  labels:
+    app: "producerapp"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: "producerapp"
+  template:
+    metadata:
+      labels:
+        app: "producerapp"
+    spec:
+      containers:
+        - name: "producerService"
+          image: "asia.gcr.io/content-eng-qa/content-video-processor:v12"
+          resources:
+            limits:
+              cpu: "1"
+              memory: 2Gi
+            requests:
+              cpu: 700m
+              memory: 1536Mi
+          args:
+            - "staging.json"
+---
+apiVersion: "autoscaling/v1"
+kind: "HorizontalPodAutoscaler"
+metadata:
+  name: "producerapp-hpa"
+  namespace: "default"
+  labels:
+    app: "producerapp"
+spec:
+  scaleTargetRef:
+    kind: "Deployment"
+    name: "producerapp"
+    apiVersion: "apps/v1beta1"
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 80
+#Check for below this file for front end application ,It is creating load balancer only and other just a services.If you know ,we can expose the in workload tab of kubernetes
+#https://github.com/mtwo/microservices-demo/blob/master/deploy/kubernetes/complete-demo.yaml
+
+---
+apiVersion: "v1"
+kind: "Service"
+metadata:
+  name: "producerapp-service"
+  namespace: "default"
+  labels:
+    app: "producerapp"
+spec:
+  ports:
+    - protocol: "TCP"
+      port: 80
+  selector:
+    app: "producerapp"
+  type: "LoadBalancer"
+  loadBalancerIP: ""
